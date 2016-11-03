@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Based on http://wiki.mikrotik.com/wiki/Using_SSH_for_system_backup
+
+# SSH_CONFIG_HOST must be the host defined in ~/.ssh/config file like:
+# Host hshint
+#      Hostname 192.168.88.1
+#      User admin
+#      Port 22
+#      IdentityFile ~/.ssh/id_rsa
+
+SSH_CONFIG_HOST=hshint
+
+# BACKUP_PATH path to store backups
+BACKUP_PATH=~/iCloud/Backup/mikrotik_home/
+
+export name=$SSH_CONFIG_HOST-backup
+bfile=`date +%Y%m%d%H%M%S-$name`
+echo "Creating backup" $bfile "..."
+ssh $SSH_CONFIG_HOST export file=$bfile
+echo "Pulling file from" $SSH_CONFIG_HOST
+scp $SSH_CONFIG_HOST:$bfile.rsc $BACKUP_PATH
