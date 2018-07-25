@@ -1,0 +1,60 @@
+# jul/25/2018 08:53:55 by RouterOS 6.42.6
+# software id = 
+#
+#
+# Oh!, this shit just make IKEv2 VPN server on newly created RouterOS instance on Digitalocean droplet:
+# https://github.com/Radg/mikrotik-toos/blob/master/do-routeros.sh
+
+# Keep in mind this settings:
+# SSH PORT:
+# set ssh port=2220
+# VPN-POOL:
+# add name=vpn-pool ranges=10.11.12.2-10.11.12.254
+
+
+# This is some stuff to IKEv2 VPN to be done:
+/ip ipsec proposal
+set [ find default=yes ] auth-algorithms=sha256,sha1 enc-algorithms=\
+    aes-256-cbc,aes-128-cbc,3des lifetime=23h59m59s pfs-group=modp2048
+/ip pool
+add name=vpn-pool ranges=10.11.12.2-10.11.12.254
+/ip ipsec mode-config
+add address-pool=vpn-pool address-prefix-length=32 name=vpn-config
+/ip dns
+set servers=8.8.8.8,8.8.4.4
+/ip ipsec peer
+add address=0.0.0.0/0 auth-method=rsa-signature certificate=vpnserver \
+    dpd-interval=30s enc-algorithm=aes-256,aes-128,3des exchange-mode=ike2 \
+    generate-policy=port-strict mode-config=vpn-config passive=yes
+/ip ipsec policy
+set 0 dst-address=10.11.12.0/24 src-address=0.0.0.0/0
+
+# Some basic firewall filters
+/ip firewall filter
+add action=accept chain=input comment="Allow ICMP" protocol=icmp
+add action=accept chain=input comment="Allow Winbox, SSH" dst-port=8291,2220 \
+    protocol=tcp
+add action=accept chain=input comment="Allow VPN" dst-port=500,4500 protocol=\
+    udp
+add action=accept chain=input dst-port=1701 protocol=tcp
+add action=accept chain=input protocol=ipsec-esp
+add action=accept chain=input comment=\
+    "Allow established, related connections" connection-state=\
+    established,related
+add action=accept chain=forward connection-state=established,related
+add action=drop chain=input comment="Drop everything else" in-interface=\
+    ether1
+/ip firewall nat
+add action=masquerade chain=srcnat comment=Masquerade out-interface=ether1 \
+    src-address=10.11.12.0/24
+
+
+/ip service
+set telnet disabled=yes
+set ftp disabled=yes
+set www disabled=yes
+set ssh port=2220
+set api disabled=yes
+set api-ssl disabled=yes
+/system identity
+set name=thisismymikrotik
