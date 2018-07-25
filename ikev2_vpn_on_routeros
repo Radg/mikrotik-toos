@@ -6,11 +6,33 @@
 # https://github.com/Radg/mikrotik-toos/blob/master/do-routeros.sh
 
 # Keep in mind this settings:
+# $HOSTNAME - Important!!! Replace $HOSTNAME with you FQDN!!!
 # SSH PORT:
 # set ssh port=2220
 # VPN-POOL:
 # add name=vpn-pool ranges=10.11.12.2-10.11.12.254
+# Password for .pks12 file, this will be needed for .mobileconfig (profile for iOS/macOS)
+# export-passphrase=mysupadupapassword
 
+
+# Create CA (ca), server certificate (vpnserver) and one client certificate (client1) 
+# Exp time = 1095 days (about 3 years)
+/certificate 
+add common-name="my.host.name Root CA" name=ca days-valid=1095
+/certificate 
+sign ca
+/certificate 
+export-certificate ca
+/certificate 
+add common-name=$HOSTNAME key-usage=tls-server name=vpnserver days-valid=1095
+/certificate 
+sign vpnserver ca=ca
+/certificate 
+add common-name=client1 key-usage=tls-client name=client1 days-valid=1095
+/certificate 
+sign client1 ca=ca
+/certificate 
+export-certificate client1 export-passphrase=mysupadupapassword type=pkcs12
 
 # This is some stuff to IKEv2 VPN to be done:
 /ip ipsec proposal
